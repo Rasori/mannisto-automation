@@ -1,0 +1,60 @@
+esphome:
+  name: power-meter
+  friendly_name: power-meter
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret power_meter_api_encrpt
+  services:
+    - service: set_pulse_total
+      variables:
+        new_pulse_total: float
+      then:
+        - pulse_counter.set_total_pulses:
+            id: pulse_counter_id
+            value: !lambda 'return new_pulse_total;'
+
+ota:
+  password: !secret power_meter_ota_pass
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Power-Meter Fallback Hotspot"
+    password: !secret hot_pass
+
+captive_portal:
+
+sensor:
+  - platform: pulse_counter
+    id: pulse_counter_id
+    internal_filter: 13us
+    pin:
+      number: 14
+      inverted: true
+      mode:
+       input: true
+       pullup: true
+    unit_of_measurement: 'kW'
+    name: 'Power'
+    filters:
+      - multiply: 0.06
+
+    total:
+      unit_of_measurement: 'kWh'
+      name: 'Energy'
+      filters:
+        - multiply: 0.001
